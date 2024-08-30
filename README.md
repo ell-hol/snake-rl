@@ -10,10 +10,10 @@ pip install -r requirements.txt
 ### Train
 
 ```
-python snake.py train.py --episodes 2000
+python snake.py --episodes 2000
 ```
 
 ### Run
 ```
-python snake.py train.py --runv --weights checkpoints/snake_dqn_model.pth
+python snake.py --run --weights checkpoints/snake_dqn_model.pth
 ```
