@@ -25,6 +25,12 @@ def parse_args():
         default="checkpoints/snake_dqn_model.pth",
         help="Path to the weights file",
     )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=2000,
+        help="Number of episodes",
+    )
     return parser.parse_args()
 
 
@@ -418,7 +424,7 @@ if __name__ == "__main__":
     if args.train:
 
         # Train the model
-        episodes = 1000
+        episodes = args.episodes
         scores, accumulated_rewards, agent = train_rnn(episodes, render=True)
 
         # Plot the results
