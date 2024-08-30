@@ -10,14 +10,30 @@ from collections import deque
 import matplotlib.pyplot as plt
 import os
 import time
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train or run the Snake game with RL")
+    parser.add_argument("--train", action="store_true", help="Train the model")
+    parser.add_argument(
+        "--run", action="store_true", help="Run the model in inference mode"
+    )
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default="checkpoints/snake_dqn_model.pth",
+        help="Path to the weights file",
+    )
+    return parser.parse_args()
 
 
 # Fix for IndexError: list index out of range in the reset method
 class SnakeEnv:
     def __init__(self):
         pygame.init()
-        self.width = 1400
-        self.height = 1000
+        self.width = 600
+        self.height = 600
         self.window = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Snake Game RL")
 
@@ -27,7 +43,7 @@ class SnakeEnv:
         self.GREEN = (0, 255, 0)
 
         self.snake_block = 20
-        self.real_time_speed = 500
+        self.real_time_speed = 5000
         self.slow_speed = 30
         self.is_real_time = True
         self.snake_speed = (
@@ -246,13 +262,13 @@ class RNN(nn.Module):
 
     def forward(self, x, hidden=None):
         if hidden is None:
-            hidden = self.init_hidden(x.size(0))
+            hidden = self.init_hidden(x.size(0), x.device)
         out, hidden = self.rnn(x, hidden)
         out = self.fc(out[:, -1, :])
         return out, hidden
 
-    def init_hidden(self, batch_size):
-        return torch.zeros(1, batch_size, self.hidden_size)
+    def init_hidden(self, batch_size, device):
+        return torch.zeros(1, batch_size, self.hidden_size, device=device)
 
 
 class ReplayBuffer:
@@ -396,57 +412,65 @@ def train_rnn(
 
 
 if __name__ == "__main__":
-    # Train the model
-    # episodes = 1000
-    # scores, accumulated_rewards, agent = train_rnn(episodes, render=True)
 
-    # # Plot the results
-    # plt.figure(figsize=(12, 5))
-    # plt.subplot(1, 2, 1)
-    # plt.plot(range(len(scores)), scores)
-    # plt.xlabel("Episode")
-    # plt.ylabel("Score")
-    # plt.title("DQN Training Progress - Scores")
+    args = parse_args()  # Parse the command-line arguments
 
-    # plt.subplot(1, 2, 2)
-    # plt.plot(range(len(accumulated_rewards)), accumulated_rewards)
-    # plt.xlabel("Episode")
-    # plt.ylabel("Accumulated Reward")
-    # plt.title("DQN Training Progress - Accumulated Rewards")
+    if args.train:
 
-    # plt.tight_layout()
-    # plt.show()
+        # Train the model
+        episodes = 1000
+        scores, accumulated_rewards, agent = train_rnn(episodes, render=True)
 
-    state_size = 12  # Size of the state returned by SnakeEnv (increased by 1 for time)
-    action_size = 4  # Number of possible actions
-    agent = RNNAgent(state_size, action_size)
-    # load the agent
-    agent.model.load_state_dict(torch.load("checkpoints/snake_dqn_model.pth"))
-    agent.model.eval()
+        # Plot the results
+        plt.figure(figsize=(12, 5))
+        plt.subplot(1, 2, 1)
+        plt.plot(range(len(scores)), scores)
+        plt.xlabel("Episode")
+        plt.ylabel("Score")
+        plt.title("DQN Training Progress - Scores")
 
-    # Run the game
-    env = SnakeEnv()
-    state = env.reset()
-    done = False
+        plt.subplot(1, 2, 2)
+        plt.plot(range(len(accumulated_rewards)), accumulated_rewards)
+        plt.xlabel("Episode")
+        plt.ylabel("Accumulated Reward")
+        plt.title("DQN Training Progress - Accumulated Rewards")
 
-    try:
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT or (
-                    event.type == pygame.KEYDOWN and event.key == pygame.K_q
-                ):
-                    env.close()
-                    pygame.quit()
-                    exit()
+        plt.tight_layout()
+        plt.show()
 
-            action = agent.act(state, inference=True)
-            next_state, reward, done, info = env.step(action)
-            state = next_state
-            env.render()
+    elif args.run:
+        state_size = (
+            12  # Size of the state returned by SnakeEnv (increased by 1 for time)
+        )
+        action_size = 4  # Number of possible actions
+        agent = RNNAgent(state_size, action_size)
+        # load the agent
+        agent.model.load_state_dict(torch.load(args.weights))
+        agent.model.eval()
 
-            if done:
-                state = env.reset()
-                done = False
+        # Run the game
+        env = SnakeEnv()
+        state = env.reset()
+        done = False
 
-    except KeyboardInterrupt:
-        env.close()
+        try:
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT or (
+                        event.type == pygame.KEYDOWN and event.key == pygame.K_q
+                    ):
+                        env.close()
+                        pygame.quit()
+                        exit()
+
+                action = agent.act(state, inference=True)
+                next_state, reward, done, info = env.step(action)
+                state = next_state
+                env.render()
+
+                if done:
+                    state = env.reset()
+                    done = False
+
+        except KeyboardInterrupt:
+            env.close()
