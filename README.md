@@ -1,6 +1,6 @@
 # Snake RL
 
-Simple reinforcement learning on the game snake
+Simple reinforcement learning on the snake game
 
 ### Install
 ```
